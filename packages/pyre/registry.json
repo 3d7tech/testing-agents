@@ -1,0 +1,44 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "glass-clock",
+  "homepage": "https://github.com/3d7tech/testing-agents/tree/main/packages/pyre",
+  "items": [
+    {
+      "name": "glass-clock",
+      "type": "registry:component",
+      "title": "Glass Clock",
+      "author": "Pyre contributors",
+      "description": "A countdown clock where every unit is a hundredth of the one above it: mote, grain, glass, day, span. SVG rings, zero dependencies beyond React, fully themeable via CSS custom properties.",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "src/glass-clock.tsx",
+          "type": "registry:component",
+          "target": "components/glass-clock.tsx"
+        },
+        {
+          "path": "src/pyre-core.ts",
+          "type": "registry:lib",
+          "target": "lib/pyre-core.ts"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "chart-1": "12 76% 61%",
+          "chart-2": "173 58% 39%",
+          "chart-3": "197 37% 24%",
+          "chart-4": "43 74% 66%",
+          "chart-5": "27 87% 67%"
+        },
+        "dark": {
+          "chart-1": "220 70% 50%",
+          "chart-2": "160 60% 45%",
+          "chart-3": "30 80% 55%",
+          "chart-4": "280 65% 60%",
+          "chart-5": "340 75% 55%"
+        }
+      }
+    }
+  ]
+}
