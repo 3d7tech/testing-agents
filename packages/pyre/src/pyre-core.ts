@@ -1,42 +1,48 @@
 /// <reference types="vitest/importMeta" />
-// MIT License. Copyright (c) Pyre contributors.
+// MIT License. Copyright (c) Beat contributors.
 //
-// pyre-core.ts — the shared arithmetic behind every glass-clock variant.
+// pyre-core.ts — the shared arithmetic behind Beat, a decimal clock and day
+// planner. This is not a progress tracker: it's a replacement for reading
+// the time. Instead of "2:14pm", you see how many beats are left today.
 //
-// The idea: a countdown clock where every unit is a hundredth of the one
-// above it, so a single "glass" is exactly 1% of a day.
+// The idea: every day is exactly 100 beats, and everything nests by a
+// hundredfold from there:
 //
-//   mote (86.4ms) -> grain (8.64s) -> glass (14m 24s) -> day -> span (100 days) -> year
+//   mote (86.4ms) -> grain (8.64s) -> beat (14m 24s) -> day -> span (100 days) -> year
 //
-// mote, grain, glass, day and span are clean hundredfold steps of each
-// other (100 motes per grain, 100 grains per glass, 100 glasses per day,
-// 100 days per span). year is the one seam: a year holds ~3.65 spans, and
-// never will hold a clean 100, so the year's last span of the year is a
-// partial "seam" span (65 or 66 days) rather than a full 100.
+// mote, grain, beat and span are clean hundredfold steps of each other
+// (100 motes per grain, 100 grains per beat, 100 beats per day, 100 days
+// per span). `day` is fixed to a real calendar day (86,400s nominally) on
+// purpose — the headline promise ("100 beats left today") has to be exact,
+// so the day is the anchor the whole ladder is built from, not the year.
+// That pushes the one necessary irregularity to the far end: a year holds
+// ~3.65 spans, never a clean 100, so the year's last span is a partial
+// "seam" span (65 or 66 days) rather than a full 100.
 //
 // Every unit counts DOWN: `remaining` runs from `capacity` to 1 and then
 // rolls back to `capacity` as the parent unit ticks over. `fraction` is
-// how much of the *current* tick is left, in [0, 1], for driving a ring.
+// how much of the *current* tick is left, in [0, 1], for driving a ring
+// or bar.
 //
 // DST and leap years are handled deliberately, not incidentally:
-//  - sub-day units (mote/grain/glass) are derived by dividing *today's
+//  - sub-day units (mote/grain/beat) are derived by dividing *today's
 //    actual local wall-clock duration* into 100/100/100, so a 23-hour
 //    DST-spring-forward day still ends exactly at the next local
 //    midnight, and so does a 25-hour DST-fall-back day. Nothing about
-//    mote/grain/glass assumes a day is 86,400,000ms.
+//    mote/grain/beat assumes a day is 86,400,000ms.
 //  - day-counting (for span/year) is done by diffing local calendar
 //    dates, not raw millisecond timestamps, so the one-hour DST shift
 //    twice a year never perturbs which day-of-year we think we're on.
 //  - leap years are detected explicitly and feed both `year`'s capacity
 //    (365 vs 366) and the length of the year's seam span (65 vs 66).
 
-export type PyreUnit = 'mote' | 'grain' | 'glass' | 'day' | 'span' | 'year';
+export type PyreUnit = 'mote' | 'grain' | 'beat' | 'day' | 'span' | 'year';
 
 /** Default ring order, innermost (fastest) to outermost (slowest). */
 export const PYRE_RING_UNITS: readonly PyreUnit[] = [
   'mote',
   'grain',
-  'glass',
+  'beat',
   'day',
   'span',
 ] as const;
@@ -45,7 +51,7 @@ export const PYRE_RING_UNITS: readonly PyreUnit[] = [
 export const PYRE_UNITS: readonly PyreUnit[] = [
   'mote',
   'grain',
-  'glass',
+  'beat',
   'day',
   'span',
   'year',
@@ -55,7 +61,7 @@ export const PYRE_UNITS: readonly PyreUnit[] = [
 export const PYRE_NOMINAL_MS: Record<PyreUnit, number> = {
   mote: 86.4,
   grain: 8_640,
-  glass: 864_000,
+  beat: 864_000,
   day: 86_400_000,
   span: 8_640_000_000,
   year: 315_576_000_000, // 365.25 days, purely illustrative
@@ -76,7 +82,7 @@ export interface PyreReading {
   now: number;
   mote: PyreUnitReading;
   grain: PyreUnitReading;
-  glass: PyreUnitReading;
+  beat: PyreUnitReading;
   day: PyreUnitReading;
   span: PyreUnitReading;
   year: PyreUnitReading;
@@ -150,8 +156,8 @@ export function readPyre(date: Date = new Date()): PyreReading {
   const elapsedTodayMs = now - startOfToday.getTime();
   const dayElapsedFraction = todayDurationMs > 0 ? elapsedTodayMs / todayDurationMs : 0;
 
-  const glassStep = stepDown100(dayElapsedFraction);
-  const grainStep = stepDown100(glassStep.childPositionFraction);
+  const beatStep = stepDown100(dayElapsedFraction);
+  const grainStep = stepDown100(beatStep.childPositionFraction);
   const moteStep = stepDown100(grainStep.childPositionFraction);
 
   const year = date.getFullYear();
@@ -184,11 +190,11 @@ export function readPyre(date: Date = new Date()): PyreReading {
       remaining: grainStep.remaining,
       fraction: grainStep.fraction,
     },
-    glass: {
-      unit: 'glass',
+    beat: {
+      unit: 'beat',
       capacity: 100,
-      remaining: glassStep.remaining,
-      fraction: glassStep.fraction,
+      remaining: beatStep.remaining,
+      fraction: beatStep.fraction,
     },
     day: {
       unit: 'day',
@@ -283,7 +289,7 @@ export function usePyre(options: UsePyreOptions = {}): PyreReading | null {
 }
 
 // ---------------------------------------------------------------------------
-// Acceptance tests — the contract every variant is checked against.
+// Acceptance tests — the contract the app is checked against.
 // Run with `npm test` (Vitest in-source testing; stripped from prod builds).
 // ---------------------------------------------------------------------------
 
@@ -302,37 +308,37 @@ if (import.meta.vitest) {
       process.env.TZ = originalTZ;
     });
 
-    it('reports capacity 100 for mote, grain and glass', () => {
+    it('reports capacity 100 for mote, grain and beat', () => {
       const r = readPyre(new Date(2026, 5, 15, 12, 0, 0, 0));
       expect(r.mote.capacity).toBe(100);
       expect(r.grain.capacity).toBe(100);
-      expect(r.glass.capacity).toBe(100);
+      expect(r.beat.capacity).toBe(100);
     });
 
     it('counts down, never up: remaining falls as the day progresses', () => {
       const early = readPyre(new Date(2026, 5, 15, 0, 5, 0, 0));
       const later = readPyre(new Date(2026, 5, 15, 0, 10, 0, 0));
-      expect(later.glass.remaining).toBeLessThanOrEqual(early.glass.remaining);
-      expect(early.glass.remaining).toBeLessThanOrEqual(100);
-      expect(later.glass.remaining).toBeGreaterThanOrEqual(1);
+      expect(later.beat.remaining).toBeLessThanOrEqual(early.beat.remaining);
+      expect(early.beat.remaining).toBeLessThanOrEqual(100);
+      expect(later.beat.remaining).toBeGreaterThanOrEqual(1);
     });
 
-    it('glass.remaining is 100 at the first instant of the day and falls to 1 by the end', () => {
+    it('beat.remaining is 100 at the first instant of the day and falls to 1 by the end', () => {
       const start = readPyre(new Date(2026, 5, 15, 0, 0, 0, 0));
-      expect(start.glass.remaining).toBe(100);
+      expect(start.beat.remaining).toBe(100);
 
       const end = readPyre(new Date(2026, 5, 15, 23, 59, 59, 999));
-      expect(end.glass.remaining).toBe(1);
+      expect(end.beat.remaining).toBe(1);
     });
 
-    it('100 glasses exactly tile an ordinary 24-hour day', () => {
+    it('100 beats exactly tile an ordinary 24-hour day', () => {
       // Well away from any DST transition.
       const noon = readPyre(new Date(2026, 5, 15, 12, 0, 0, 0));
-      // Halfway through the day => roughly the 50th glass (0-indexed 50).
-      expect(noon.glass.remaining).toBe(50);
+      // Halfway through the day => roughly the 50th beat (0-indexed 50).
+      expect(noon.beat.remaining).toBe(50);
     });
 
-    it('a mote is nested inside a grain inside a glass: fractions compose', () => {
+    it('a mote is nested inside a grain inside a beat: fractions compose', () => {
       const r = readPyre(new Date(2026, 5, 15, 6, 0, 0, 0));
       expect(r.mote.fraction).toBeGreaterThanOrEqual(0);
       expect(r.mote.fraction).toBeLessThanOrEqual(1);
@@ -346,21 +352,21 @@ if (import.meta.vitest) {
       expect(day1.day.remaining - day2.day.remaining).toBe(1);
     });
 
-    it('DST spring-forward day (2026-03-08, US Eastern) is 23 hours: glasses run short that day', () => {
+    it('DST spring-forward day (2026-03-08, US Eastern) is 23 hours: beats run short that day', () => {
       // 2:00am -> 3:00am is skipped, so 1:30am local time does not exist,
       // but readPyre must still divide the *actual* elapsed local day into
-      // exactly 100 glasses.
+      // exactly 100 beats.
       const justBeforeMidnight = readPyre(new Date(2026, 2, 8, 23, 59, 59, 999));
-      expect(justBeforeMidnight.glass.remaining).toBe(1);
+      expect(justBeforeMidnight.beat.remaining).toBe(1);
 
       const start = readPyre(new Date(2026, 2, 8, 0, 0, 0, 0));
       const end = readPyre(new Date(2026, 2, 9, 0, 0, 0, 0));
       expect(start.day.remaining - end.day.remaining).toBe(1);
     });
 
-    it('DST fall-back day (2026-11-01, US Eastern) is 25 hours: glasses run long that day', () => {
+    it('DST fall-back day (2026-11-01, US Eastern) is 25 hours: beats run long that day', () => {
       const justBeforeMidnight = readPyre(new Date(2026, 10, 1, 23, 59, 59, 999));
-      expect(justBeforeMidnight.glass.remaining).toBe(1);
+      expect(justBeforeMidnight.beat.remaining).toBe(1);
 
       const start = readPyre(new Date(2026, 10, 1, 0, 0, 0, 0));
       const end = readPyre(new Date(2026, 10, 2, 0, 0, 0, 0));

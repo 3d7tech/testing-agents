@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/testing-agents/pyre/sw.js', { scope: '/testing-agents/pyre/' })})}

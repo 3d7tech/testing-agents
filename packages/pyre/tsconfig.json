@@ -8,8 +8,6 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/lib/*": ["src/*"],
-      "@/components/*": ["src/*"],
       "@/*": ["src/*"]
     },
     "resolveJsonModule": true,
@@ -21,5 +19,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "demo", "versions", "vite.config.ts"]
+  "include": ["src", "app", "vite.config.ts"]
 }
