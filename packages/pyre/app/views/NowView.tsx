@@ -1,76 +1,122 @@
 import * as React from 'react';
 import { usePyre } from '../../src/pyre-core';
+import { findBlockAtBeat, loadBlocks, type DayBlock } from '../lib/blocks';
 import { formatClockTime, formatDayLabel } from '../lib/format';
 
-const BAR_WIDTH = 'min(360px, 82vw)';
+const GROUP_SIZE = 10;
+const GROUPS = 10;
+const ROW_WIDTH = 'min(360px, 82vw)';
 
-function DepleteBar({
-  fraction,
+interface RowCell {
+  isPast: boolean;
+  isCurrent: boolean;
+}
+
+function cellsForGroup(positionInGroup: number): RowCell[] {
+  return Array.from({ length: GROUP_SIZE }, (_, i) => ({
+    isPast: i < positionInGroup,
+    isCurrent: i === positionInGroup,
+  }));
+}
+
+function DepleteGrid({
+  positionInGroup,
   height,
+  colorForCell,
   animate,
-  trackOpacity = 1,
+  ariaLabel,
 }: {
-  fraction: number;
+  positionInGroup: number;
   height: number;
+  colorForCell: (index: number) => string;
   animate: boolean;
-  trackOpacity?: number;
+  ariaLabel: string;
 }) {
+  const cells = cellsForGroup(positionInGroup);
   return (
-    <div
-      className="w-full overflow-hidden rounded-full"
-      style={{ width: BAR_WIDTH, height, background: 'var(--line)', opacity: trackOpacity }}
-    >
-      <div
-        className="h-full rounded-full"
-        style={{
-          width: `${Math.min(1, Math.max(0, fraction)) * 100}%`,
-          background: 'var(--accent)',
-          transition: animate ? 'width 900ms linear' : 'none',
-        }}
-      />
+    <div className="flex gap-1.5" role="img" aria-label={ariaLabel}>
+      {cells.map((cell, i) => (
+        <div
+          key={i}
+          className={`flex-1 rounded-full ${cell.isCurrent && animate ? 'motion-safe:animate-pulse' : ''}`}
+          style={{
+            height,
+            background: colorForCell(i),
+            opacity: cell.isPast ? 0.22 : 1,
+            transition: 'opacity 300ms linear',
+          }}
+        />
+      ))}
     </div>
   );
 }
 
-export function NowView() {
+export interface NowViewProps {
+  /** Show the conventional date/time alongside a matching beat-notation
+   * line, so it's easy to learn the mapping between the two. When false,
+   * both are hidden — just the beat headline and grids remain. */
+  showRealDate: boolean;
+}
+
+export function NowView({ showRealDate }: NowViewProps) {
   const reading = usePyre({ rate: 'second' });
   const [now, setNow] = React.useState<Date | null>(null);
+  const [todaysBlocks, setTodaysBlocks] = React.useState<DayBlock[]>([]);
 
-  // The very first real reading should render in place, not animate in from
-  // the "full" skeleton state — only *subsequent* live updates should ease.
   const hasReadOnce = React.useRef(false);
   const isFirstReading = reading !== null && !hasReadOnce.current;
   if (reading !== null) hasReadOnce.current = true;
 
   React.useEffect(() => {
-    setNow(new Date());
+    const nowDate = new Date();
+    setNow(nowDate);
+    setTodaysBlocks(loadBlocks(nowDate));
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const beatsLeft = reading?.beat.remaining ?? null;
-  const beatFraction = reading?.beat.fraction ?? 1;
-  const grainRemaining = reading?.grain.remaining ?? null;
-  const grainFraction = reading?.grain.fraction ?? 1;
-  const spanRemaining = reading?.span.remaining ?? null;
-  const yearPercentSpent = reading ? Math.round((1 - reading.year.fraction) * 100) : null;
-  const daysLeftInSpan = reading?.day.remaining ?? null;
+  const grainsLeft = reading?.grain.remaining ?? null;
+
+  const elapsedBeats = reading ? 100 - reading.beat.remaining : 0;
+  const beatGroupIndex = Math.floor(elapsedBeats / GROUP_SIZE);
+  const beatPositionInGroup = elapsedBeats % GROUP_SIZE;
+
+  const elapsedGrains = reading ? 100 - reading.grain.remaining : 0;
+  const grainPositionInGroup = elapsedGrains % GROUP_SIZE;
+
+  const currentBlock = reading ? findBlockAtBeat(todaysBlocks, elapsedBeats) : undefined;
+
+  const beatNotation =
+    reading && now
+      ? `beat ${reading.beat.remaining}/100, day ${reading.day.remaining}/${reading.day.capacity}, ${now.getFullYear()}`
+      : null;
+
+  const beatCellColor = React.useCallback(
+    (indexInGroup: number) => {
+      const absoluteBeat = beatGroupIndex * GROUP_SIZE + indexInGroup;
+      const block = findBlockAtBeat(todaysBlocks, absoluteBeat);
+      return block ? block.color : 'var(--accent)';
+    },
+    [beatGroupIndex, todaysBlocks],
+  );
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-6 py-16">
-      <div
-        className="flex flex-col items-center gap-1 text-xs uppercase tracking-[0.2em]"
-        style={{ color: 'var(--fg-faint)' }}
-      >
-        <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
-        <span>{now ? formatDayLabel(now) : ' '}</span>
-      </div>
+    <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 py-16">
+      {showRealDate && (
+        <div
+          className="flex flex-col items-center gap-1 text-xs uppercase tracking-[0.2em]"
+          style={{ color: 'var(--fg-faint)' }}
+        >
+          <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
+          <span>{now ? formatDayLabel(now) : ' '}</span>
+          <span className="tabular normal-case tracking-normal" style={{ color: 'var(--fg-muted)' }}>
+            {beatNotation ?? ' '}
+          </span>
+        </div>
+      )}
 
-      <div
-        className="mt-10 flex flex-col items-center"
-        role="img"
-        aria-label={beatsLeft !== null ? `${beatsLeft} of 100 beats left today` : 'Loading'}
-      >
+      <div className="flex flex-col items-center">
         <div
           className="tabular font-semibold leading-none"
           style={{ fontSize: 'clamp(5.5rem, 16vw, 9rem)', letterSpacing: '-0.04em' }}
@@ -83,42 +129,47 @@ export function NowView() {
         >
           beats left today
         </div>
+      </div>
 
-        <div className="mt-6">
-          <DepleteBar fraction={beatFraction} height={10} animate={!isFirstReading} />
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col gap-1.5" style={{ width: ROW_WIDTH }}>
+          <div className="flex items-baseline justify-between text-xs" style={{ color: 'var(--fg-faint)' }}>
+            <span className="uppercase tracking-[0.15em]">Beat</span>
+            <span className="tabular">
+              {beatGroupIndex + 1} of {GROUPS}
+            </span>
+          </div>
+          <DepleteGrid
+            positionInGroup={beatPositionInGroup}
+            height={12}
+            colorForCell={beatCellColor}
+            animate={!isFirstReading}
+            ariaLabel={`Beat ${elapsedBeats + 1} of 100`}
+          />
         </div>
 
-        <div className="mt-3 flex items-center gap-3" style={{ width: BAR_WIDTH }}>
-          <DepleteBar fraction={grainFraction} height={4} animate={!isFirstReading} trackOpacity={0.6} />
-          <span
-            className="tabular shrink-0 text-xs"
-            style={{ color: 'var(--fg-faint)', minWidth: '4.5ch', textAlign: 'right' }}
-          >
-            {grainRemaining !== null ? `${grainRemaining} grain` : ' '}
-          </span>
+        <div className="flex flex-col gap-1.5" style={{ width: ROW_WIDTH }}>
+          <div className="text-xs tabular" style={{ color: 'var(--fg-faint)' }}>
+            {grainsLeft !== null ? `grain ${grainsLeft}` : ' '}
+          </div>
+          <DepleteGrid
+            positionInGroup={grainPositionInGroup}
+            height={5}
+            colorForCell={() => 'var(--accent)'}
+            animate={!isFirstReading}
+            ariaLabel={`Grain ${grainsLeft ?? '—'} left this beat`}
+          />
         </div>
       </div>
 
-      <div
-        className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm tabular"
-        style={{ color: 'var(--fg-muted)' }}
-      >
-        <span className="whitespace-nowrap">
-          {daysLeftInSpan !== null ? `${daysLeftInSpan} days left this span` : ' '}
-        </span>
-        <span aria-hidden="true" className="hidden sm:inline" style={{ color: 'var(--fg-faint)' }}>
-          ·
-        </span>
-        <span className="whitespace-nowrap">
-          {spanRemaining !== null ? `span ${5 - spanRemaining} of 4` : ' '}
-        </span>
-        <span aria-hidden="true" className="hidden sm:inline" style={{ color: 'var(--fg-faint)' }}>
-          ·
-        </span>
-        <span className="whitespace-nowrap">
-          {yearPercentSpent !== null ? `${yearPercentSpent}% of year spent` : ' '}
-        </span>
-      </div>
+      {currentBlock && (
+        <div
+          className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+          style={{ background: currentBlock.color, color: 'var(--bg)' }}
+        >
+          <span>Now: {currentBlock.label}</span>
+        </div>
+      )}
     </div>
   );
 }

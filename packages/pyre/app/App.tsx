@@ -5,6 +5,7 @@ import { YearView } from './views/YearView';
 import { BlockPromptOverlay } from './components/BlockPromptOverlay';
 import { useBlockPrompts } from './hooks/useBlockPrompts';
 import { notificationPermission, requestNotificationPermission } from './lib/notifications';
+import { usePersistentBoolean } from './lib/usePersistentBoolean';
 
 type Tab = 'now' | 'day' | 'year';
 
@@ -56,9 +57,24 @@ function NotificationsToggle() {
   );
 }
 
+function RealDateToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={show}
+      className="rounded-full px-3 py-1.5 text-xs"
+      style={{ border: '1px solid var(--line)', color: 'var(--fg-muted)' }}
+    >
+      {show ? 'Hide date' : 'Show date'}
+    </button>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = React.useState<Tab>('now');
   const { prompt, respond } = useBlockPrompts();
+  const [showRealDate, setShowRealDate] = usePersistentBoolean('beat:show-real-date', true);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -83,12 +99,13 @@ export default function App() {
               </button>
             ))}
           </div>
+          <RealDateToggle show={showRealDate} onToggle={() => setShowRealDate(!showRealDate)} />
           <NotificationsToggle />
           <ThemeToggle />
         </div>
       </nav>
       <main className="flex-1">
-        {tab === 'now' && <NowView />}
+        {tab === 'now' && <NowView showRealDate={showRealDate} />}
         {tab === 'day' && <DayView />}
         {tab === 'year' && <YearView />}
       </main>
