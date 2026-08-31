@@ -19,48 +19,34 @@ function cellsForGroup(positionInGroup: number): RowCell[] {
   }));
 }
 
-function DepleteRow({
-  label,
-  groupIndex,
+function DepleteGrid({
   positionInGroup,
   height,
   colorForCell,
   animate,
+  ariaLabel,
 }: {
-  label: string;
-  groupIndex: number;
   positionInGroup: number;
   height: number;
   colorForCell: (index: number) => string;
   animate: boolean;
+  ariaLabel: string;
 }) {
   const cells = cellsForGroup(positionInGroup);
   return (
-    <div className="flex flex-col gap-1.5" style={{ width: ROW_WIDTH }}>
-      <div className="flex items-baseline justify-between text-xs" style={{ color: 'var(--fg-faint)' }}>
-        <span className="uppercase tracking-[0.15em]">{label}</span>
-        <span className="tabular">
-          group {groupIndex + 1} of {GROUPS}
-        </span>
-      </div>
-      <div
-        className="flex gap-1.5"
-        role="img"
-        aria-label={`${label}: position ${positionInGroup + 1} of ${GROUP_SIZE} in group ${groupIndex + 1} of ${GROUPS}`}
-      >
-        {cells.map((cell, i) => (
-          <div
-            key={i}
-            className={`flex-1 rounded-full ${cell.isCurrent && animate ? 'motion-safe:animate-pulse' : ''}`}
-            style={{
-              height,
-              background: colorForCell(i),
-              opacity: cell.isPast ? 0.22 : 1,
-              transition: 'opacity 300ms linear',
-            }}
-          />
-        ))}
-      </div>
+    <div className="flex gap-1.5" role="img" aria-label={ariaLabel}>
+      {cells.map((cell, i) => (
+        <div
+          key={i}
+          className={`flex-1 rounded-full ${cell.isCurrent && animate ? 'motion-safe:animate-pulse' : ''}`}
+          style={{
+            height,
+            background: colorForCell(i),
+            opacity: cell.isPast ? 0.22 : 1,
+            transition: 'opacity 300ms linear',
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -84,16 +70,12 @@ export function NowView() {
 
   const beatsLeft = reading?.beat.remaining ?? null;
   const grainsLeft = reading?.grain.remaining ?? null;
-  const spanRemaining = reading?.span.remaining ?? null;
-  const yearPercentSpent = reading ? Math.round((1 - reading.year.fraction) * 100) : null;
-  const daysLeftInSpan = reading?.day.remaining ?? null;
 
   const elapsedBeats = reading ? 100 - reading.beat.remaining : 0;
   const beatGroupIndex = Math.floor(elapsedBeats / GROUP_SIZE);
   const beatPositionInGroup = elapsedBeats % GROUP_SIZE;
 
   const elapsedGrains = reading ? 100 - reading.grain.remaining : 0;
-  const grainGroupIndex = Math.floor(elapsedGrains / GROUP_SIZE);
   const grainPositionInGroup = elapsedGrains % GROUP_SIZE;
 
   const currentBlock = reading ? findBlockAtBeat(todaysBlocks, elapsedBeats) : undefined;
@@ -133,22 +115,34 @@ export function NowView() {
       </div>
 
       <div className="flex flex-col items-center gap-4">
-        <DepleteRow
-          label="Beat"
-          groupIndex={beatGroupIndex}
-          positionInGroup={beatPositionInGroup}
-          height={12}
-          colorForCell={beatCellColor}
-          animate={!isFirstReading}
-        />
-        <DepleteRow
-          label="Grain"
-          groupIndex={grainGroupIndex}
-          positionInGroup={grainPositionInGroup}
-          height={5}
-          colorForCell={() => 'var(--accent)'}
-          animate={!isFirstReading}
-        />
+        <div className="flex flex-col gap-1.5" style={{ width: ROW_WIDTH }}>
+          <div className="flex items-baseline justify-between text-xs" style={{ color: 'var(--fg-faint)' }}>
+            <span className="uppercase tracking-[0.15em]">Beat</span>
+            <span className="tabular">
+              {beatGroupIndex + 1} of {GROUPS}
+            </span>
+          </div>
+          <DepleteGrid
+            positionInGroup={beatPositionInGroup}
+            height={12}
+            colorForCell={beatCellColor}
+            animate={!isFirstReading}
+            ariaLabel={`Beat ${elapsedBeats + 1} of 100`}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5" style={{ width: ROW_WIDTH }}>
+          <div className="text-xs tabular" style={{ color: 'var(--fg-faint)' }}>
+            {grainsLeft !== null ? `grain ${grainsLeft}` : ' '}
+          </div>
+          <DepleteGrid
+            positionInGroup={grainPositionInGroup}
+            height={5}
+            colorForCell={() => 'var(--accent)'}
+            animate={!isFirstReading}
+            ariaLabel={`Grain ${grainsLeft ?? '—'} left this beat`}
+          />
+        </div>
       </div>
 
       {currentBlock && (
@@ -159,31 +153,6 @@ export function NowView() {
           <span>Now: {currentBlock.label}</span>
         </div>
       )}
-
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs tabular" style={{ color: 'var(--fg-faint)' }}>
-        <span>{grainsLeft !== null ? `${grainsLeft} grains left this beat` : ' '}</span>
-      </div>
-
-      <div
-        className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm tabular"
-        style={{ color: 'var(--fg-muted)' }}
-      >
-        <span className="whitespace-nowrap">
-          {daysLeftInSpan !== null ? `${daysLeftInSpan} days left this span` : ' '}
-        </span>
-        <span aria-hidden="true" className="hidden sm:inline" style={{ color: 'var(--fg-faint)' }}>
-          ·
-        </span>
-        <span className="whitespace-nowrap">
-          {spanRemaining !== null ? `span ${5 - spanRemaining} of 4` : ' '}
-        </span>
-        <span aria-hidden="true" className="hidden sm:inline" style={{ color: 'var(--fg-faint)' }}>
-          ·
-        </span>
-        <span className="whitespace-nowrap">
-          {yearPercentSpent !== null ? `${yearPercentSpent}% of year spent` : ' '}
-        </span>
-      </div>
     </div>
   );
 }
