@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "deplete-dial",
+  "type": "registry:component",
+  "title": "Deplete Dial",
+  "author": "Pyre contributors",
+  "description": "A generic nested-depletion dial: concentric rings that run down from full to empty. Not about time — a countdown clock is one demo of it; budget burn-down, quota usage, and sprint capacity are others.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "versions/beautifui/deplete-dial.tsx",
+      "type": "registry:component",
+      "target": "deplete-dial/deplete-dial.tsx"
+    },
+    {
+      "path": "versions/beautifui/deplete-dial.css",
+      "type": "registry:component",
+      "target": "deplete-dial/deplete-dial.css"
+    },
+    {
+      "path": "versions/beautifui/pyre-core.ts",
+      "type": "registry:lib",
+      "target": "deplete-dial/pyre-core.ts"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "glass-counter",
+  "type": "registry:component",
+  "title": "Glass Counter",
+  "author": "Pyre contributors",
+  "description": "Motion-first countdown dial with a spring-following burn head, per-digit odometer rollover, and a radial bloom on each glass rollover.",
+  "dependencies": ["motion"],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "versions/beui/glass-counter.tsx",
+      "type": "registry:component",
+      "target": "components/glass-counter.tsx"
+    },
+    {
+      "path": "src/pyre-core.ts",
+      "type": "registry:lib",
+      "target": "lib/pyre-core.ts"
+    }
+  ]
+}

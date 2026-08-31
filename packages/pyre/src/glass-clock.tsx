@@ -15,7 +15,7 @@ import {
   type PyreReading,
   type PyreUnit,
   type PyreUnitReading,
-} from './pyre-core';
+} from '@/lib/pyre-core';
 
 export type RingKey = Exclude<PyreUnit, 'year'>;
 
