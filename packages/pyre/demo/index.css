@@ -1,3 +1,7 @@
+/* Tailwind, for Version 4 (ember-dial)'s utility classes only — a host
+   project that installs ember-dial is assumed to already run Tailwind. */
+@import 'tailwindcss';
+
 /* Demo-only theme tokens, in the shadcn/ui convention (raw "H S% L%"
    triplets consumed as hsl(var(--token))). A real host app supplies its
    own — glass-clock.tsx never hardcodes a colour. */

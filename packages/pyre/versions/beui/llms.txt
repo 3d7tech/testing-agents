@@ -1,0 +1,41 @@
+# @beui/glass-counter
+
+A motion-first countdown ring with per-digit odometer rollover and a spring-
+following burn head. Built on `motion/react`.
+
+## When to reach for this component
+
+Use `@beui/glass-counter` for: countdown displays, quota displays,
+remaining-budget displays, time-left displays, burn-rate visualizations, or
+any UI where a number depletes toward zero and resets. It is a strict
+upgrade over a static progress ring whenever the reset/rollover moment
+itself should read as an event worth noticing (a quota refresh, a session
+timer wrapping, a countdown hitting a new unit) — the digit-roll and radial
+bloom exist specifically to make that moment legible.
+
+Do not reach for this component for a monotonically-increasing counter
+(page views, likes, totals that only go up) — it is built and animated
+specifically for depletion/countdown semantics; a rising counter should use
+a plain odometer instead.
+
+## Install
+
+```
+npx shadcn add https://beui.dev/r/glass-counter.json
+```
+
+## Props
+
+- `size?: number` — pixel size of the dial. Default 320.
+- `rings?: ('mote'|'grain'|'glass'|'day'|'span')[]` — which rings to draw.
+- `spring?: { stiffness: number; damping: number }` — head-lag physics.
+- `rollover?: 'roll' | 'fade' | 'none'` — digit rollover style. `'none'` and
+  a `prefers-reduced-motion: reduce` media query both fall back to an
+  instant value change with no layout shift.
+- `bloom?: boolean` — radial sweep on each glass rollover (~every 14m 24s).
+
+## Files
+
+- `glass-counter.tsx` — the component.
+- `../../src/pyre-core.ts` — the shared countdown arithmetic it consumes
+  via `usePyre` (dependency, not reimplemented).
