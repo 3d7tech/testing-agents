@@ -51,7 +51,14 @@ function DepleteGrid({
   );
 }
 
-export function NowView() {
+export interface NowViewProps {
+  /** Show the conventional date/time alongside a matching beat-notation
+   * line, so it's easy to learn the mapping between the two. When false,
+   * both are hidden — just the beat headline and grids remain. */
+  showRealDate: boolean;
+}
+
+export function NowView({ showRealDate }: NowViewProps) {
   const reading = usePyre({ rate: 'second' });
   const [now, setNow] = React.useState<Date | null>(null);
   const [todaysBlocks, setTodaysBlocks] = React.useState<DayBlock[]>([]);
@@ -80,6 +87,11 @@ export function NowView() {
 
   const currentBlock = reading ? findBlockAtBeat(todaysBlocks, elapsedBeats) : undefined;
 
+  const beatNotation =
+    reading && now
+      ? `beat ${reading.beat.remaining}/100, day ${reading.day.remaining}/${reading.day.capacity}, ${now.getFullYear()}`
+      : null;
+
   const beatCellColor = React.useCallback(
     (indexInGroup: number) => {
       const absoluteBeat = beatGroupIndex * GROUP_SIZE + indexInGroup;
@@ -91,13 +103,18 @@ export function NowView() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 py-16">
-      <div
-        className="flex flex-col items-center gap-1 text-xs uppercase tracking-[0.2em]"
-        style={{ color: 'var(--fg-faint)' }}
-      >
-        <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
-        <span>{now ? formatDayLabel(now) : ' '}</span>
-      </div>
+      {showRealDate && (
+        <div
+          className="flex flex-col items-center gap-1 text-xs uppercase tracking-[0.2em]"
+          style={{ color: 'var(--fg-faint)' }}
+        >
+          <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
+          <span>{now ? formatDayLabel(now) : ' '}</span>
+          <span className="tabular normal-case tracking-normal" style={{ color: 'var(--fg-muted)' }}>
+            {beatNotation ?? ' '}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-col items-center">
         <div
