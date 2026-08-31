@@ -2,11 +2,35 @@ import * as React from 'react';
 import { usePyre } from '../../src/pyre-core';
 import { formatClockTime, formatDayLabel } from '../lib/format';
 
-const SIZE = 420;
-const STROKE = 3;
-const RADIUS = SIZE / 2 - STROKE * 4;
-const CENTER = SIZE / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const BAR_WIDTH = 'min(360px, 82vw)';
+
+function DepleteBar({
+  fraction,
+  height,
+  animate,
+  trackOpacity = 1,
+}: {
+  fraction: number;
+  height: number;
+  animate: boolean;
+  trackOpacity?: number;
+}) {
+  return (
+    <div
+      className="w-full overflow-hidden rounded-full"
+      style={{ width: BAR_WIDTH, height, background: 'var(--line)', opacity: trackOpacity }}
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: `${Math.min(1, Math.max(0, fraction)) * 100}%`,
+          background: 'var(--accent)',
+          transition: animate ? 'width 900ms linear' : 'none',
+        }}
+      />
+    </div>
+  );
+}
 
 export function NowView() {
   const reading = usePyre({ rate: 'second' });
@@ -25,12 +49,12 @@ export function NowView() {
   }, []);
 
   const beatsLeft = reading?.beat.remaining ?? null;
-  const dayFractionLeft = reading?.day.fraction ?? 1;
+  const beatFraction = reading?.beat.fraction ?? 1;
+  const grainRemaining = reading?.grain.remaining ?? null;
+  const grainFraction = reading?.grain.fraction ?? 1;
   const spanRemaining = reading?.span.remaining ?? null;
   const yearPercentSpent = reading ? Math.round((1 - reading.year.fraction) * 100) : null;
   const daysLeftInSpan = reading?.day.remaining ?? null;
-
-  const dashOffset = CIRCUMFERENCE * (1 - dayFractionLeft);
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-16">
@@ -38,56 +62,40 @@ export function NowView() {
         className="flex flex-col items-center gap-1 text-xs uppercase tracking-[0.2em]"
         style={{ color: 'var(--fg-faint)' }}
       >
-        <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
-        <span>{now ? formatDayLabel(now) : ' '}</span>
+        <span className="tabular">{now ? formatClockTime(now) : ' '}</span>
+        <span>{now ? formatDayLabel(now) : ' '}</span>
       </div>
 
       <div
-        className="relative mt-10 flex items-center justify-center"
-        style={{ width: 'min(420px, 88vw)', height: 'min(420px, 88vw)' }}
+        className="mt-10 flex flex-col items-center"
+        role="img"
+        aria-label={beatsLeft !== null ? `${beatsLeft} of 100 beats left today` : 'Loading'}
       >
-        <svg
-          viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="absolute inset-0 h-full w-full"
-          role="img"
-          aria-label={beatsLeft !== null ? `${beatsLeft} of 100 beats left today` : 'Loading'}
+        <div
+          className="tabular font-semibold leading-none"
+          style={{ fontSize: 'clamp(5.5rem, 16vw, 9rem)', letterSpacing: '-0.04em' }}
         >
-          <circle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            fill="none"
-            stroke="var(--line)"
-            strokeWidth={STROKE}
-          />
-          <circle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={STROKE}
-            strokeLinecap="round"
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
-            transform={`rotate(-90 ${CENTER} ${CENTER})`}
-            style={{ transition: isFirstReading ? 'none' : 'stroke-dashoffset 500ms linear' }}
-          />
-        </svg>
+          {beatsLeft !== null ? beatsLeft : '—'}
+        </div>
+        <div
+          className="mt-3 text-sm font-medium uppercase tracking-[0.18em]"
+          style={{ color: 'var(--accent)' }}
+        >
+          beats left today
+        </div>
 
-        <div className="flex flex-col items-center">
-          <div
-            className="tabular font-semibold leading-none"
-            style={{ fontSize: 'clamp(5.5rem, 16vw, 9rem)', letterSpacing: '-0.04em' }}
+        <div className="mt-6">
+          <DepleteBar fraction={beatFraction} height={10} animate={!isFirstReading} />
+        </div>
+
+        <div className="mt-3 flex items-center gap-3" style={{ width: BAR_WIDTH }}>
+          <DepleteBar fraction={grainFraction} height={4} animate={!isFirstReading} trackOpacity={0.6} />
+          <span
+            className="tabular shrink-0 text-xs"
+            style={{ color: 'var(--fg-faint)', minWidth: '4.5ch', textAlign: 'right' }}
           >
-            {beatsLeft !== null ? beatsLeft : '—'}
-          </div>
-          <div
-            className="mt-3 text-sm font-medium uppercase tracking-[0.18em]"
-            style={{ color: 'var(--accent)' }}
-          >
-            beats left today
-          </div>
+            {grainRemaining !== null ? `${grainRemaining} grain` : ' '}
+          </span>
         </div>
       </div>
 

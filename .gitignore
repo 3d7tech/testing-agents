@@ -1,20 +1,21 @@
 # Environment variables
 .env
 
-# Python
+# Python (scoped to repo root — unscoped patterns like "lib/" or "dist/"
+# would otherwise also match same-named directories inside packages/pyre)
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/

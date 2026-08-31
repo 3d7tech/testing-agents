@@ -2,6 +2,9 @@ import * as React from 'react';
 import { NowView } from './views/NowView';
 import { DayView } from './views/DayView';
 import { YearView } from './views/YearView';
+import { BlockPromptOverlay } from './components/BlockPromptOverlay';
+import { useBlockPrompts } from './hooks/useBlockPrompts';
+import { notificationPermission, requestNotificationPermission } from './lib/notifications';
 
 type Tab = 'now' | 'day' | 'year';
 
@@ -29,8 +32,33 @@ function ThemeToggle() {
   );
 }
 
+function NotificationsToggle() {
+  const [permission, setPermission] = React.useState<NotificationPermission | null>(null);
+
+  React.useEffect(() => {
+    setPermission(notificationPermission());
+  }, []);
+
+  if (permission !== 'default') return null;
+
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        const result = await requestNotificationPermission();
+        setPermission(result);
+      }}
+      className="rounded-full px-3 py-1.5 text-xs"
+      style={{ border: '1px solid var(--accent-dim)', color: 'var(--accent)' }}
+    >
+      Enable alerts
+    </button>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = React.useState<Tab>('now');
+  const { prompt, respond } = useBlockPrompts();
 
   return (
     <div className="flex min-h-full flex-col">
@@ -38,7 +66,7 @@ export default function App() {
         <span className="text-sm font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
           Beat
         </span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="flex gap-1 rounded-full p-1" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
             {TABS.map((t) => (
               <button
@@ -55,6 +83,7 @@ export default function App() {
               </button>
             ))}
           </div>
+          <NotificationsToggle />
           <ThemeToggle />
         </div>
       </nav>
@@ -63,6 +92,7 @@ export default function App() {
         {tab === 'day' && <DayView />}
         {tab === 'year' && <YearView />}
       </main>
+      {prompt && <BlockPromptOverlay prompt={prompt} onRespond={respond} />}
     </div>
   );
 }
