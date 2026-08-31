@@ -1,63 +1,45 @@
-# Pyre — Glass Clock
+# Beat
 
-A countdown clock where every unit is a hundredth of the one above it, so a
-single **glass** is exactly 1% of a day and cost becomes legible without
-arithmetic:
+A decimal clock and day planner. Instead of "2:14pm", you see how many
+**beats** are left today — every day is exactly 100 of them.
 
 ```
-mote (86.4ms) -> grain (8.64s) -> glass (14m 24s) -> day -> span (100 days) -> year
+mote (86.4ms) -> grain (8.64s) -> beat (14m 24s) -> day -> span (100 days) -> year
 ```
 
-Everything falls toward 1 and resets — this is a countdown, never a
-count-up. See `src/pyre-core.ts` for the full design note and the
-DST/leap-year-aware arithmetic, and its acceptance tests (Vitest in-source
-tests at the bottom of the file — run with `npm test`).
+This isn't a progress tracker or a novelty widget — it's a replacement for
+reading the time, built around one idea: `day` is a real calendar day
+(DST-aware), fixed as the anchor, and everything nests by a hundredfold
+from there. That's what makes "100 beats left today" an exact promise, not
+an approximation. The one necessary irregularity — a year holds ~3.65
+spans of 100 days, never a clean 100 — sits at the far end, at the year
+boundary, as far as possible from the number you actually look at.
 
-This package ships all five variants from the design brief, all built on the
-same `src/pyre-core.ts`:
+See `src/pyre-core.ts` for the full design note, the DST/leap-year-aware
+arithmetic, and its acceptance tests (Vitest in-source tests at the bottom
+of the file — run with `npm test`).
 
-- **Version 1 — `src/glass-clock.tsx`** (shadcn idiom): `GlassClock`,
-  `GlassClockDial`, `GlassClockLegend`. SVG only, zero dependencies beyond
-  React, every colour goes through `--chart-1`..`--chart-5` / `--muted` /
-  `--foreground` (the shadcn/ui convention: raw `"H S% L%"` triplets
-  consumed as `hsl(var(--token))`). Registry item at
-  `registry/glass-clock.json` / `registry.json` — once hosted,
-  `npx shadcn add https://yourdomain/r/glass-clock.json` installs it with
-  no further config. This is the reference every other version is checked
-  against, and Version 4's fallback target.
-- **Version 2 — `versions/beautifui/`** (beautifui.dev idiom): `DepleteDial`,
-  a generic nested-depletion primitive (`levels: DepleteLevel[]`, not about
-  time). Exactly three files, zero npm dependencies. See its README for the
-  self-referencing-custom-property pitfall its CSS token layer had to avoid.
-- **Version 3 — `versions/beui/`** (beui.dev idiom): `GlassCounter`, built on
-  `motion/react`. Per-digit odometer rollover staggered right to left, a
-  radial bloom on every glass rollover, and spring-following burn heads.
-  Ships an `llms.txt` for agent consumers.
-- **Version 4 — `versions/rareui/`** (rareui.com idiom): `EmberDial`, a
-  single-draw-call WebGL fragment shader (`ember-shader.ts`) drawing the
-  rings as signed-distance arcs with ember particles, falling back to
-  Version 1's SVG dial on any WebGL failure — exercised in a test, not just
-  asserted.
-- **Version 5 — `versions/transitions-dev/`** (transitions.dev idiom): three
-  standalone CSS transition recipes (`t-deplete`, `t-rollover`, `t-relight`)
-  with React/TS variants, no demo-specific sizing.
+## The app
 
-Each `versions/*/README.md` has the version-specific detail; this file
-covers what's shared.
+An installable PWA with three views:
+
+- **Now** — the headline surface. A single number (beats left today), a
+  thin depleting ring, and a demoted, small conventional clock time in the
+  corner as a bridge for anyone who still needs it.
+- **Day** — a scrollable timeline of today's 100 beats. Drag across a
+  range to block out time against a task (time-boxing in beats instead of
+  hours/minutes), persisted per-day in `localStorage`.
+- **Year** — which of the year's 4 spans you're in, days left in it, and
+  overall percent of the year spent.
 
 ## Layout
 
 - `src/pyre-core.ts` — shared arithmetic (`readPyre`) and the SSR-safe
-  `usePyre` React hook. Every variant imports this file (or, where a
-  version's own spec requires it to ship as a standalone few-file bundle,
-  an exact unmodified copy of it — see `versions/beautifui/pyre-core.ts`)
-  rather than reimplementing the countdown math.
-- `src/glass-clock.tsx` — Version 1 (see above).
-- `versions/beautifui/`, `versions/beui/`, `versions/rareui/`,
-  `versions/transitions-dev/` — Versions 2-5 (see above).
-- `demo/` — a small Vite + React app with a tab per version, used both for
-  local development (`npm run dev`) and to produce the static build
-  committed to `../../docs/pyre/` for GitHub Pages.
+  `usePyre` React hook.
+- `app/` — the actual app: `App.tsx` (nav shell), `views/` (Now/Day/Year),
+  `lib/` (formatting + the `localStorage`-backed day-block store).
+- `public/` — PWA icons (`icon.svg` is the source; the PNGs are rasterized
+  from it) and manifest assets.
 
 ## Commands
 
@@ -65,17 +47,17 @@ covers what's shared.
 npm install
 npm test         # Vitest acceptance tests for pyre-core.ts
 npm run typecheck
-npm run dev       # local demo at http://localhost:5173
-npm run build     # builds the demo to ../../docs/pyre/
+npm run dev       # local dev server at http://localhost:5173
+npm run build     # builds to ../../docs/pyre/
 ```
 
 ## GitHub Pages
 
 This repo's Pages source is `/docs` on the default branch (see
-`GITHUB_PAGES_SETUP.md`), already serving an unrelated app at `docs/`. The
-glass-clock demo is built with `base: '/testing-agents/pyre/'` and its
-output is committed under `docs/pyre/` so it publishes alongside the
-existing site at `https://<org>.github.io/testing-agents/pyre/` without
-touching `docs/index.html`. Re-run `npm run build` and commit the refreshed
-`docs/pyre/` output whenever `src/` changes — Pages serves whatever is
-committed there, it does not run a build step.
+`GITHUB_PAGES_SETUP.md`), already serving an unrelated app at `docs/`. Beat
+is built with `base: '/testing-agents/pyre/'` and its output is committed
+under `docs/pyre/` so it publishes alongside the existing site at
+`https://<org>.github.io/testing-agents/pyre/` without touching
+`docs/index.html`. Re-run `npm run build` and commit the refreshed
+`docs/pyre/` output whenever `src/` or `app/` changes — Pages serves
+whatever is committed there, it does not run a build step.

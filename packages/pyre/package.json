@@ -1,8 +1,8 @@
 {
-  "name": "@pyre/glass-clock",
+  "name": "beat",
   "private": true,
   "version": "0.1.0",
-  "description": "A countdown clock where every unit is a hundredth of the one above it.",
+  "description": "A decimal clock and day planner. Every day is 100 beats — see what's left instead of what time it is.",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "motion": "^11.15.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -25,6 +25,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^2.1.8"
   }
 }
