@@ -3,6 +3,12 @@
 A decimal clock and day planner. Instead of "2:14pm", you see how many
 **beats** are left today — every day is exactly 100 of them.
 
+For the why behind it — the use case, where it goes from here, and what an
+AI-assisted version could look like — see
+[The Beat Memo](../../docs/beat-memo.html)
+([live](https://3d7tech.github.io/testing-agents/beat-memo.html) once
+published).
+
 ```
 mote (86.4ms) -> grain (8.64s) -> beat (14m 24s) -> day -> span (100 days) -> year
 ```
