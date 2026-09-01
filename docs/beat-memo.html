@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Beat Memo</title>
+<meta name="description" content="A memo on Beat's use case, near-term roadmap, and what an AI-assisted version of the planner would actually do." />
+<style>
+  :root {
+    --bg: #f6f4ee;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-muted: #6b6f7a;
+    --ink-faint: #b2b5bd;
+    --accent: #b8790f;
+    --accent-soft: #eeddb8;
+    --accent-ink: #7a5308;
+    --line: #e3ded0;
+    --mono-bg: #ece7d8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0d12;
+      --surface: #12151c;
+      --ink: #f3f1ea;
+      --ink-muted: #9497a3;
+      --ink-faint: #565a68;
+      --accent: #e8b94a;
+      --accent-soft: #3a2f16;
+      --accent-ink: #f6d98a;
+      --line: #21252f;
+      --mono-bg: #181c24;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0b0d12;
+    --surface: #12151c;
+    --ink: #f3f1ea;
+    --ink-muted: #9497a3;
+    --ink-faint: #565a68;
+    --accent: #e8b94a;
+    --accent-soft: #3a2f16;
+    --accent-ink: #f6d98a;
+    --line: #21252f;
+    --mono-bg: #181c24;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  .page {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 6rem;
+  }
+
+  .mono {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-bottom: 2.75rem;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .kicker {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+    font-weight: 620;
+    font-size: clamp(2.5rem, 6vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  .dek {
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--ink-muted);
+    max-width: 34rem;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .dateline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 0.6rem;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    margin-top: 0.4rem;
+  }
+
+  .dateline strong {
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+
+  /* ---------- Body ---------- */
+
+  section {
+    margin-bottom: 3.25rem;
+  }
+
+  section > *:last-child {
+    margin-bottom: 0;
+  }
+
+  h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+    font-weight: 560;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin: 0 0 1.1rem;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    font-size: 1.15rem;
+    margin: 1.75rem 0 0.6rem;
+    color: var(--ink);
+  }
+
+  p {
+    margin: 0 0 1.15rem;
+    max-width: 40rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  strong {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .lede {
+    font-size: 1.2rem;
+    line-height: 1.6;
+  }
+
+  code {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.85em;
+    background: var(--mono-bg);
+    border-radius: 0.3em;
+    padding: 0.1em 0.4em;
+  }
+
+  a {
+    color: var(--accent-ink);
+    text-decoration-color: var(--accent-soft);
+    text-underline-offset: 0.2em;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Callouts ---------- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .card p {
+    color: var(--ink-muted);
+  }
+
+  .card .mono {
+    color: var(--accent-ink);
+    font-size: 0.95rem;
+  }
+
+  .scene {
+    background: var(--mono-bg);
+    border-radius: 0.6rem;
+    padding: 1.5rem 1.6rem;
+    margin: 1.75rem 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.88rem;
+    line-height: 1.75;
+  }
+
+  .scene .you {
+    color: var(--ink-muted);
+  }
+
+  .scene .you::before {
+    content: "you  ";
+    color: var(--ink-faint);
+  }
+
+  .scene .beat {
+    color: var(--accent-ink);
+    display: block;
+    margin-top: 0.85rem;
+  }
+
+  .scene .beat::before {
+    content: "beat ";
+    color: var(--ink-faint);
+  }
+
+  /* ---------- Roadmap ---------- */
+
+  .horizon {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1.75rem 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .horizon > div {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.25rem;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+
+  .horizon .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-top: 0.2rem;
+  }
+
+  .horizon .items p {
+    margin: 0 0 0.5rem;
+    color: var(--ink-muted);
+  }
+
+  .horizon .items p:last-child {
+    margin-bottom: 0;
+  }
+
+  .horizon .items strong {
+    color: var(--ink);
+  }
+
+  /* ---------- Closing ---------- */
+
+  .sign-off {
+    margin-top: 3.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 30rem) {
+    .horizon > div {
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+    }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,460..620&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <span class="kicker">Internal memo</span>
+    <h1>The Beat Memo</h1>
+    <p class="dek">
+      What Beat is for, why the shape of the day matters more than the shape of the clock, and
+      what happens when the planner starts talking back.
+    </p>
+    <div class="dateline">
+      <span>Written at</span>
+      <strong class="mono">beat 2/100, day 58/100, 2026</strong>
+      <span>&mdash; or, if you insist, sometime around 11pm on a Monday in late August.</span>
+    </div>
+  </header>
+
+  <section>
+    <p class="lede">
+      Beat replaces the question &ldquo;what time is it?&rdquo; with a better one: &ldquo;how much
+      of today is left?&rdquo; Every day is exactly <strong>100 beats</strong>. A beat is
+      14 minutes and 24 seconds &mdash; short enough to feel like a unit of actual work, long
+      enough that you never have to think in seconds. When someone asks you the time, you don&rsquo;t
+      say 3:47pm. You say <span class="mono">beat 26</span>, and everyone in the room understands
+      exactly how much runway is left before the day is spent.
+    </p>
+  </section>
+
+  <section>
+    <h2>The mechanism</h2>
+    <p>
+      The trick is which end of the ladder is fixed. Most attempts at decimal time start from the
+      year and divide downward, which sounds tidy until you realize a year never splits evenly
+      into anything &mdash; so the fudge factor lands wherever you least want it, usually right in
+      the middle of your afternoon. Beat starts from the one unit that <em>is</em> fixed: the
+      calendar day, DST and all. Everything below it nests by a clean hundredfold &mdash;
+      <code>mote</code> (86.4ms) &rarr; <code>grain</code> (8.64s) &rarr; <code>beat</code>
+      (14m 24s) &mdash; and everything above it does too &mdash; <code>day</code> &rarr;
+      <code>span</code> (100 days). The one seam in the whole system sits at the very top, where a
+      year comes out to roughly 3.65 spans instead of a clean 100. That seam is a hundred-day span
+      short, once a year, as far from your afternoon as the math can put it.
+    </p>
+    <p>
+      The payoff is that &ldquo;100 beats left today&rdquo; is never an approximation. It&rsquo;s
+      not a progress bar rounding for effect &mdash; it&rsquo;s exact, the same way &ldquo;60
+      minutes in an hour&rdquo; is exact. That's what makes it usable as a real unit of account,
+      not just a novelty readout.
+    </p>
+  </section>
+
+  <section>
+    <h2>Who actually wants this</h2>
+    <p>
+      Clock time answers a question almost nobody is asking. You rarely need to know your
+      <em>position</em> in the day &mdash; you need to know how much of it you have
+      <em>left</em>. Beat is for the specific moment that happens a dozen times a day: glancing up
+      mid-task and needing an honest answer to &ldquo;do I have time to start something else, or
+      should I wind down?&rdquo; A beat count answers that in one glance. A clock face makes you do
+      the subtraction yourself, every single time.
+    </p>
+    <p>
+      Three groups get the most out of it in practice:
+    </p>
+    <p>
+      <strong>People who plan their day in blocks, not appointments.</strong> The Day view turns
+      beats into a 10&times;10 grid you tap out directly &mdash; deep work, meetings, the gym &mdash;
+      at a grain (14.4 minutes) that&rsquo;s coarse enough to plan quickly and fine enough to mean
+      something, which is a gap most calendars leave between &ldquo;15-minute slots&rdquo; and
+      &ldquo;just wing it.&rdquo;
+    </p>
+    <p>
+      <strong>People who lose the thread of a clock-shaped day.</strong> A depleting count is a
+      fundamentally different kind of information than a clock position &mdash; it tells you a
+      quantity, not a location, and quantities are easier to feel in your body. That&rsquo;s the
+      whole premise behind the beat and grain grids pulsing on the Now screen: the current cell
+      isn&rsquo;t just numerically current, it&rsquo;s <em>visibly</em> current.
+    </p>
+    <p>
+      <strong>People who want the day to hold them accountable back.</strong> Blocks aren&rsquo;t
+      just decoration on the grid &mdash; when the live beat crosses into one, Beat surfaces it;
+      when a block ends, it asks whether you actually did the thing. It&rsquo;s a planner that
+      checks in, not a calendar that just sits there being ignored.
+    </p>
+    <div class="card">
+      <p class="mono">Show date: ON</p>
+      <p>
+        None of this asks you to abandon clock time. The date toggle is deliberate &mdash; the
+        goal is fluency, not conversion. You keep the bridge (10:49pm, right next to
+        <span class="mono">beat 5/100</span>) for as long as you need it, and hide it the day you
+        don&rsquo;t.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where it goes from here</h2>
+    <p>
+      The core arithmetic is done and tested; almost everything left is about making the plan you
+      make in Beat easier to make well, and easier to trust.
+    </p>
+    <div class="horizon">
+      <div>
+        <span class="label">Near</span>
+        <div class="items">
+          <p>
+            <strong>Recurring templates.</strong> Save a day&rsquo;s block layout &mdash; the
+            usual sleep, the usual focus window &mdash; and start from it instead of an empty grid
+            every morning.
+          </p>
+          <p>
+            <strong>Calendar import.</strong> Pull real events in and snap them to the nearest
+            beat boundary automatically, so Beat and your existing calendar stop being two separate
+            chores.
+          </p>
+          <p>
+            <strong>A completion record.</strong> Every Done / Not done / Snooze already writes a
+            status. Surfacing that history &mdash; which kinds of blocks you actually finish, which
+            you quietly always skip &mdash; turns the planner into a mirror.
+          </p>
+        </div>
+      </div>
+      <div>
+        <span class="label">Mid</span>
+        <div class="items">
+          <p>
+            <strong>A menu-bar or Waybar widget.</strong> The full screen is for planning; a status
+            bar is for glancing. A live <span class="mono">beat 26</span> sitting where the clock
+            usually lives is the most honest version of the pitch, and Omarchy&rsquo;s Waybar is
+            about as natural a home for that as exists.
+          </p>
+          <p>
+            <strong>Sync across devices.</strong> Blocks currently live in one browser&rsquo;s
+            local storage. A day planned on a laptop should be the same day a phone can check.
+          </p>
+        </div>
+      </div>
+      <div>
+        <span class="label">Far</span>
+        <div class="items">
+          <p>
+            <strong>Shared beats.</strong> A block two people can both see &mdash; &ldquo;we&rsquo;re
+            both heads-down until beat 40&rdquo; &mdash; without either of them opening a shared
+            calendar.
+          </p>
+          <p>
+            <strong>An event hook.</strong> Let a block starting or ending trigger something
+            outside Beat &mdash; a focus mode, a do-not-disturb toggle &mdash; instead of asking
+            other tools to poll a calendar.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the AI version looks like</h2>
+    <p>
+      The tempting version of &ldquo;add AI to a planner&rdquo; is a chatbot bolted onto the side.
+      The useful version is narrower and more specific: an assistant whose only job is
+      translating between how you actually talk about your day and the beat grid underneath it
+      &mdash; in both directions.
+    </p>
+    <p>Concretely, three things:</p>
+    <p>
+      <strong>Planning in sentences, not taps.</strong> You describe the day once, in your own
+      words, and it comes back as blocks already placed on the grid:
+    </p>
+    <div class="scene">
+      <span class="you">2 hours deep work this morning, a call with Sam at 3, gym after dinner</span>
+      <span class="beat">beats 5&ndash;13 &middot; Deep work</span>
+      <span class="beat">beats 71&ndash;74 &middot; Call: Sam</span>
+      <span class="beat">beats 88&ndash;94 &middot; Gym</span>
+    </div>
+    <p>
+      <strong>A time-estimation coach that learns from you, specifically.</strong> Beat already
+      knows the gap between what you planned and what you marked done. An assistant reading that
+      history stops treating every &ldquo;deep work&rdquo; block as a fresh guess &mdash; it
+      notices that yours run eight beats, not the twelve you keep scheduling, and quietly proposes
+      the number that actually holds.
+    </p>
+    <p>
+      <strong>Prompts that know the pattern, not just the moment.</strong> A static &ldquo;did you
+      get this done?&rdquo; is the same question whether it&rsquo;s your first skipped gym block or
+      your tenth. One that&rsquo;s read the history can ask the more useful version &mdash;
+      &ldquo;this is the third evening gym block in a row you&rsquo;ve skipped &mdash; move it to
+      mornings instead?&rdquo; &mdash; and act on the answer.
+    </p>
+    <p>
+      None of that requires the assistant to know anything it wasn&rsquo;t already sitting on
+      &mdash; the block history, the done/skipped record, the grid itself. The bar for whether an
+      AI feature belongs in Beat is whether it makes the beats you already track more useful, not
+      whether it gives the app something new to talk about. And it stays a proposal, never a
+      silent edit: the grid is yours, the assistant only ever suggests what goes on it.
+    </p>
+  </section>
+
+  <p class="sign-off">
+    Everything above the AI section already exists and ships today. Everything in it is a
+    direction, not a feature list &mdash; worth building in roughly the order it&rsquo;s written,
+    starting wherever the next real day of use points.
+  </p>
+</div>
+</body>
+</html>
